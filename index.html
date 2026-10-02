@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SWORD GRIM - AAA 3D Endless Runner & Code Hub</title>
+    <style>
+        :root {
+            --bg-color: #08090c;
+            --panel-bg: rgba(18, 20, 28, 0.95);
+            --gold: #e5b342;
+            --gold-bright: #ffd700;
+            --red: #d93838;
+            --blue: #2a82e4;
+            --text-light: #ecefe6;
+            --border: #2e3440;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Top Bar Navigation */
+        header {
+            height: 54px;
+            background: #0d0f14;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand h1 {
+            font-size: 1.3rem;
+            letter-spacing: 3px;
+            color: var(--gold);
+            text-transform: uppercase;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(229, 179, 66, 0.3);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #8a92a6;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-light);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--gold-bright);
+            background: rgba(229, 179, 66, 0.12);
+            border-color: rgba(229, 179, 66, 0.4);
+        }
+
+        /* View Content Area */
+        .view-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-page {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .tab-page.active {
+            display: flex;
+        }
+
+        /* Game Canvas Container */
+        #game-view {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Game HUD Overlay */
+        #hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .stat-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 240px;
+        }
+
+        .bar-wrapper {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border);
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .bar-fill {
+            height: 10px;
+            border-radius: 2px;
+            transition: width 0.2s ease;
+        }
+
+        .health-fill { background: linear-gradient(90deg, #b91c1c, #ef4444); }
+        .stamina-fill { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+
+        .score-box {
+            text-align: right;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border);
+            padding: 10px 18px;
+            border-radius: 6px;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            color: #8a92a6;
+            letter-spacing: 1.5px;
+        }
+
+        .score-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--gold);
+            font-family: monospace;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(13, 15, 20, 0.85);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            gap: 20px;
+            font-size: 0.8rem;
+            color: #b0b8c8;
+        }
+
+        .controls-hint span key {
+            background: #282c37;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--gold);
+            font-family: monospace;
+            border: 1px solid #404859;
+        }
+
+        /* Start / Game Over Screen */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 9, 12, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .screen-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--gold);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 480px;
+            box-shadow: 0 0 30px rgba(229, 179, 66, 0.15);
+        }
+
+        .screen-card h2 {
+            font-size: 2.2rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+        }
+
+        .screen-card p {
+            color: #9aa2b4;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .cta-btn {
+            background: linear-gradient(135deg, #e5b342, #b8860b);
+            border: none;
+            color: #000;
+            font-weight: 800;
+            padding: 14px 32px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 179, 66, 0.4);
+        }
+
+        /* Code Hub View */
+        #code-view {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background: #0f111a;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: #0a0b10;
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .file-item {
+            padding: 10px 14px;
+            border-radius: 6px;
+            color: #8c95a8;
+            font-family: monospace;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-light);
+        }
+
+        .file-item.active {
+            background: rgba(229, 179, 66, 0.1);
+            color: var(--gold);
+            border-color: rgba(229, 179, 66, 0.3);
+            font-weight: bold;
+        }
+
+        .code-container {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #090a0f;
+        }
+
+        pre {
+            font-family: "Fira Code", Consolas, Monaco, "Courier New", monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #d8dee9;
+        }
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="app-container">
+        <header>
+            <div class="brand">
+                <h1>SWORD GRIM</h1>
+            </div>
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('game')">🎮 Playable Prototype</button>
+                <button class="tab-btn" onclick="switchTab('code')">📜 Unity C# Source Code</button>
+            </div>
+        </header>
+
+        <div class="view-content">
+            <!-- TAB 1: Playable WebGL Game Engine -->
+            <div id="page-game" class="tab-page active">
+                <div id="game-view">
+                    <div id="canvas-container"></div>
+
+                    <!-- Game HUD -->
+                    <div id="hud-overlay">
+                        <div class="hud-top">
+                            <div class="stat-bars">
+                                <div class="bar-wrapper">
+                                    <div id="health-bar" class="bar-fill health-fill" style="width: 100%;"></div>
+                                </div>
+                                <div class="bar-wrapper">
+                                    <div id="stamina-bar" class="bar-fill stamina-fill" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                            <div class="score-box">
+                                <div class="score-label">DISTANCE RUN</div>
+                                <div id="score-val" class="score-val">0000m</div>
+                            </div>
+                        </div>
+
+                        <div class="controls-hint">
+                            <span><key>←</key> <key>→</key> Change Lane</span>
+                            <span><key>↑</key> Jump</span>
+                            <span><key>↓</key> Slide</span>
+                            <span><key>SPACE</key> Sword Attack</span>
+                        </div>
+                    </div>
+
+                    <!-- Start Overlay -->
+                    <div id="start-screen" class="overlay-screen">
+                        <div class="screen-card">
+                            <h2>SWORD GRIM</h2>
+                            <p>Guide the last guardian of Kurogane through cursed ruins. Avoid obstacles, slay phantom warriors, and reach the Serpent King.</p>
+                            <button class="cta-btn" onclick="startGame()">BEGIN RUN</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Over Overlay -->
+                    <div id="gameover-screen" class="overlay-screen" style="display: none;">
+                        <div class="screen-card">
+                            <h2 style="color: var(--red);">YOU FALL</h2>
+                            <p id="final-score-text">Distance Survived: 0m</p>
+                            <button class="cta-btn" onclick="restartGame()">RISE AGAIN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: C# Source Code Inspector -->
+            <div id="page-code" class="tab-page">
+                <div id="code-view">
+                    <div class="sidebar">
+                        <div class="file-item active" onclick="showCode('GameManager')">GameManager.cs</div>
+                        <div class="file-item" onclick="showCode('ObjectPool')">ObjectPoolManager.cs</div>
+                        <div class="file-item" onclick="showCode('Input')">InputManager.cs</div>
+                        <div class="file-item" onclick="showCode('PlayerController')">PlayerController.cs</div>
+                        <div class="file-item" onclick="showCode('CameraController')">CameraController.cs</div>
+                        <div class="file-item" onclick="showCode('PlayerCombat')">PlayerCombat.cs</div>
+                        <div class="file-item" onclick="showCode('LevelGenerator')">ProceduralLevelGenerator.cs</div>
+                    </div>
+                    <div class="code-container">
+                        <pre><code id="code-display">// Select a C# script from the sidebar to inspect the unified source code.</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================
+           TAB SWITCHING LOGIC
+           ========================================================== */
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+
+            if (tab === 'game') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('page-game').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('page-code').classList.add('active');
+                showCode('GameManager');
+            }
+        }
+
+        /* ==========================================================
+           C# CODE DATABASE
+           ========================================================== */
+        const codeFiles = {
+            'GameManager': `using UnityEngine;
+using System;
+
+namespace SwordGrim.Core
+{
+    public class GameManager : MonoBehaviour
+    {
+        public static GameManager Instance { get; private set; }
+
+        public enum GameState { MainMenu, Playing, Paused, GameOver }
+        public GameState CurrentState { get; private set; }
+
+        public static event Action<GameState> OnGameStateChanged;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
+        public void UpdateGameState(GameState newState)
+        {
+            CurrentState = newState;
+            switch (CurrentState)
+            {
+                case GameState.Playing: Time.timeScale = 1f; break;
+                case GameState.Paused: Time.timeScale = 0f; break;
+                case GameState.GameOver: Time.timeScale = 1f; break;
+            }
+            OnGameStateChanged?.Invoke(newState);
+        }
+
+        public void StartGame() => UpdateGameState(GameState.Playing);
+        public void PauseGame() => UpdateGameState(GameState.Paused);
+        public void GameOver() => UpdateGameState(GameState.GameOver);
+    }
+}`,
+            'ObjectPool': `using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace SwordGrim.Core
+{
+    public class ObjectPoolManager : MonoBehaviour
+    {
+        public static ObjectPoolManager Instance { get; private set; }
+
+        [Serializable]
+        public class Pool
+        {
+            public string tag;
+            public GameObject prefab;
+            public int size;
+        }
+
+        public List<Pool> pools;
+        private Dictionary<string, Queue<GameObject>> poolDictionary;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            Instance = this;
+            InitializePools();
+        }
+
+        private void InitializePools()
+        {
+            poolDictionary = new Dictionary<string, Queue<GameObject>>();
+
+            foreach (Pool pool in pools)
+            {
+                Queue<GameObject> objectPool = new Queue<GameObject>();
+                for (int i = 0; i < pool.size; i++)
+                {
+                    GameObject obj = Instantiate(pool.prefab, transform);
+                    obj.SetActive(false);
+                    objectPool.Enqueue(obj);
+                }
+                poolDictionary.Add(pool.tag, objectPool);
+            }
+        }
+
+        public GameObject SpawnFromPool(string tag, Vector3 position, Quaternion rotation)
+        {
+            if (!poolDictionary.ContainsKey(tag)) return null;
+
+            GameObject obj = poolDictionary[tag].Dequeue();
+            obj.SetActive(true);
+            obj.transform.position = position;
+            obj.transform.rotation = rotation;
+
+            poolDictionary[tag].Enqueue(obj);
+            return obj;
+        }
+    }
+}`,
+            'Input': `using UnityEngine;
+using System;
+
+namespace SwordGrim.Core
+{
+    public class InputManager : MonoBehaviour
+    {
+        public static InputManager Instance { get; private set; }
+
+        public float swipeResistance = 50f;
+        private Vector2 touchStart;
+        private bool touchStopped;
+
+        public event Action OnSwipeLeft, OnSwipeRight, OnSwipeUp, OnSwipeDown, OnAttack;
+
+        private void Awake() => Instance = this;
+
+        private void Update()
+        {
+            if (GameManager.Instance && GameManager.Instance.CurrentState != GameManager.GameState.Playing) return;
+
+            if (Input.touchCount > 0)
+            {
+                Touch t = Input.GetTouch(0);
+                if (t.phase == TouchPhase.Began) { touchStart = t.position; touchStopped = false; }
+                else if (t.phase == TouchPhase.Moved && !touchStopped)
+                {
+                    Vector2 dist = t.position - touchStart;
+                    if (dist.magnitude > swipeResistance)
+                    {
+                        if (Mathf.Abs(dist.x) > Mathf.Abs(dist.y))
+                        {
+                            if (dist.x > 0) OnSwipeRight?.Invoke(); else OnSwipeLeft?.Invoke();
+                        }
+                        else
+                        {
+                            if (dist.y > 0) OnSwipeUp?.Invoke(); else OnSwipeDown?.Invoke();
+                        }
+                        touchStopped = true;
+                    }
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) OnSwipeLeft?.Invoke();
+            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) OnSwipeRight?.Invoke();
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) OnSwipeUp?.Invoke();
+            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) OnSwipeDown?.Invoke();
+            if (Input.GetKeyDown(KeyCode.Space)) OnAttack?.Invoke();
+        }
+    }
+}`,
+            'PlayerController': `using System.Collections;
+using UnityEngine;
+
+namespace SwordGrim.Player
+{
+    [RequireComponent(typeof(CharacterController))]
+    public class PlayerController : MonoBehaviour
+    {
+        public float forwardSpeed = 15f;
+        public float laneDistance = 3.5f;
+        public float laneSwitchSpeed = 12f;
+        public float jumpForce = 9f;
+        public float gravity = -22f;
+
+        private CharacterController controller;
+        private Vector3 moveVector;
+        private int currentLane = 1; // 0: Left, 1: Center, 2: Right
+
+        private void Start()
+        {
+            controller = GetComponent<CharacterController>();
+            Core.InputManager.Instance.OnSwipeLeft += () => ChangeLane(-1);
+            Core.InputManager.Instance.OnSwipeRight += () => ChangeLane(1);
+            Core.InputManager.Instance.OnSwipeUp += Jump;
+        }
+
+        private void Update()
+        {
+            if (Core.GameManager.Instance.CurrentState != Core.GameManager.GameState.Playing) return;
+
+            moveVector.z = forwardSpeed;
+            if (controller.isGrounded) moveVector.y = -1f;
+            else moveVector.y += gravity * Time.deltaTime;
+
+            float targetX = (currentLane - 1) * laneDistance;
+            Vector3 diff = new Vector3(targetX - transform.position.x, 0, 0);
+
+            Vector3 finalMove = moveVector * Time.deltaTime;
+            finalMove.x = diff.x * laneSwitchSpeed * Time.deltaTime;
+
+            controller.Move(finalMove);
+        }
+
+        private void ChangeLane(int dir)
+        {
+            currentLane = Mathf.Clamp(currentLane + dir, 0, 2);
+        }
+
+        private void Jump()
+        {
+            if (controller.isGrounded) moveVector.y = jumpForce;
+        }
+    }
+}`,
+            'CameraController': `using UnityEngine;
+
+namespace SwordGrim.Core
+{
+    public class CameraController : MonoBehaviour
+    {
+        public Transform target;
+        public Vector3 offset = new Vector3(0, 4.5f, -7.5f);
+        public float followSpeed = 12f;
+
+        private void LateUpdate()
+        {
+            if (!target) return;
+            Vector3 targetPos = target.position + offset;
+            targetPos.x = 0; // Keep camera centered on track axis
+            transform.position = Vector3.Lerp(transform.position, targetPos, followSpeed * Time.deltaTime);
+        }
+    }
+}`,
+            'PlayerCombat': `using UnityEngine;
+
+namespace SwordGrim.Player
+{
+    public class PlayerCombat : MonoBehaviour
+    {
+        public Transform swordTip;
+        public LayerMask enemyLayer;
+        public float attackRadius = 2.5f;
+        public ParticleSystem swordTrailVFX;
+
+        public void TriggerComboAttack()
+        {
+            if (swordTrailVFX) swordTrailVFX.Play();
+
+            Collider[] hits = Physics.OverlapSphere(transform.position + Vector3.forward * 1.5f, attackRadius, enemyLayer);
+            foreach (var hit in hits)
+            {
+                hit.GetComponent<EnemyHealth>()?.TakeDamage(35);
+            }
+        }
+    }
+}`,
+            'LevelGenerator': `using System.Collections.Generic;
+using UnityEngine;
+
+namespace SwordGrim.Environment
+{
+    public class ProceduralLevelGenerator : MonoBehaviour
+    {
+        public Transform player;
+        public float chunkLength = 30f;
+        public int initialChunks = 5;
+
+        private List<GameObject> activeChunks = new List<GameObject>();
+        private float spawnZ = 0f;
+
+        private void Start()
+        {
+            for (int i = 0; i < initialChunks; i++) SpawnChunk();
+        }
+
+        private void Update()
+        {
+            if (player.position.z - 40f > spawnZ - (initialChunks * chunkLength))
+            {
+                SpawnChunk();
+                RecycleOldestChunk();
+            }
+        }
+
+        private void SpawnChunk()
+        {
+            GameObject chunk = Core.ObjectPoolManager.Instance.SpawnFromPool("LevelChunk", Vector3.forward * spawnZ, Quaternion.identity);
+            activeChunks.Add(chunk);
+            spawnZ += chunkLength;
+        }
+
+        private void RecycleOldestChunk()
+        {
+            activeChunks[0].SetActive(false);
+            activeChunks.RemoveAt(0);
+        }
+    }
+}`
+        };
+
+        function showCode(key) {
+            document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('code-display').textContent = codeFiles[key];
+        }
+
+        /* ==========================================================
+           3D PLAYABLE ENGINE (THREE.JS RECREATION)
+           ========================================================== */
+        let scene, camera, renderer, playerMesh, swordMesh;
+        let running = false, distance = 0, currentLane = 1;
+        let playerY = 0, jumpVelocity = 0, isJumping = false, isSliding = false;
+        let obstacles = [], groundChunks = [];
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x08090c, 0.025);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 4.5, -7.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x2d3748, 1.2);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xe5b342, 1.5);
+            dirLight.position.set(10, 20, -10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Create Player
+            const playerGroup = new THREE.Group();
+            const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd93838, roughness: 0.3 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.8;
+            playerGroup.add(body);
+
+            // Sword
+            const swordGeo = new THREE.BoxGeometry(0.1, 1.2, 0.1);
+            const swordMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 });
+            swordMesh = new THREE.Mesh(swordGeo, swordMat);
+            swordMesh.position.set(0.5, 1.0, 0.4);
+            swordMesh.rotation.x = Math.PI / 4;
+            playerGroup.add(swordMesh);
+
+            playerMesh = playerGroup;
+            scene.add(playerMesh);
+
+            // Build Initial Environment Chunks
+            for (let i = 0; i < 8; i++) {
+                createGroundChunk(i * 30);
+            }
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', handleKeyPress);
+        }
+
+        function createGroundChunk(zPos) {
+            const chunkGroup = new THREE.Group();
+            
+            // 3-lane path
+            const roadGeo = new THREE.BoxGeometry(11, 0.2, 30);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.8 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.position.set(0, -0.1, zPos + 15);
+            chunkGroup.add(road);
+
+            // Side Lanterns
+            for (let l = 0; l < 30; l += 10) {
+                const lanternGeo = new THREE.BoxGeometry(0.4, 2, 0.4);
+                const lanternMat = new THREE.MeshStandardMaterial({ color: 0xe5b342, emissive: 0xe5b342, emissiveIntensity: 0.5 });
+                
+                const leftL = new THREE.Mesh(lanternGeo, lanternMat);
+                leftL.position.set(-6, 1, zPos + l);
+                const rightL = new THREE.Mesh(lanternGeo, lanternMat);
+                rightL.position.set(6, 1, zPos + l);
+
+                chunkGroup.add(leftL);
+                chunkGroup.add(rightL);
+            }
+
+            scene.add(chunkGroup);
+            groundChunks.push({ mesh: chunkGroup, z: zPos });
+
+            // Spawn Obstacle
+            if (zPos > 30) {
+                spawnObstacle(zPos + 15);
+            }
+        }
+
+        function spawnObstacle(z) {
+            const lanes = [-3.5, 0, 3.5];
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            
+            const obsGeo = new THREE.BoxGeometry(2, 1.5, 0.8);
+            const obsMat = new THREE.MeshStandardMaterial({ color: 0x718096, roughness: 0.5 });
+            const obs = new THREE.Mesh(obsGeo, obsMat);
+            obs.position.set(lane, 0.75, z);
+            
+            scene.add(obs);
+            obstacles.push({ mesh: obs, active: true });
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            running = true;
+            distance = 0;
+            animate();
+        }
+
+        function restartGame() {
+            document.getElementById('gameover-screen').style.display = 'none';
+            // Reset position
+            playerMesh.position.set(0, 0, 0);
+            currentLane = 1;
+            running = true;
+            distance = 0;
+            animate();
+        }
+
+        function handleKeyPress(e) {
+            if (!running) return;
+
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                if (currentLane > 0) currentLane--;
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                if (currentLane < 2) currentLane++;
+            } else if (e.key === 'ArrowUp' || e.key === 'w') {
+                if (!isJumping) { isJumping = true; jumpVelocity = 0.3; }
+            } else if (e.key === 'ArrowDown' || e.key === 's') {
+                if (!isSliding) {
+                    isSliding = true;
+                    playerMesh.scale.y = 0.5;
+                    setTimeout(() => { playerMesh.scale.y = 1.0; isSliding = false; }, 700);
+                }
+            } else if (e.code === 'Space') {
+                // Sword attack swing animation
+                swordMesh.rotation.z = -Math.PI / 2;
+                setTimeout(() => swordMesh.rotation.z = 0, 200);
+            }
+        }
+
+        function animate() {
+            if (!running) return;
+            requestAnimationFrame(animate);
+
+            // Forward speed movement
+            distance += 0.4;
+            playerMesh.position.z += 0.4;
+
+            // Lane interpolation
+            const targetX = (currentLane - 1) * 3.5;
+            playerMesh.position.x += (targetX - playerMesh.position.x) * 0.2;
+
+            // Jump Physics
+            if (isJumping) {
+                playerY += jumpVelocity;
+                jumpVelocity -= 0.018; // Gravity
+                if (playerY <= 0) {
+                    playerY = 0;
+                    isJumping = false;
+                }
+                playerMesh.position.y = playerY;
+            }
+
+            // Camera follow
+            camera.position.z = playerMesh.position.z - 7.5;
+            camera.position.y = playerMesh.position.y + 4.5;
+            camera.lookAt(0, playerMesh.position.y + 1.2, playerMesh.position.z + 5);
+
+            // Infinite Chunk Repositioning
+            groundChunks.forEach(c => {
+                if (c.mesh.position.z + 30 < playerMesh.position.z - 10) {
+                    c.mesh.position.z += 240;
+                    c.z += 240;
+                }
+            });
+
+            // Collision Check
+            obstacles.forEach(o => {
+                if (o.active && Math.abs(o.mesh.position.z - playerMesh.position.z) < 1.0) {
+                    if (Math.abs(o.mesh.position.x - playerMesh.position.x) < 1.2 && playerMesh.position.y < 0.8) {
+                        running = false;
+                        document.getElementById('final-score-text').textContent = `Distance Survived: ${Math.floor(distance)}m`;
+                        document.getElementById('gameover-screen').style.display = 'flex';
+                    }
+                }
+            });
+
+            // Update UI
+            document.getElementById('score-val').textContent = `${Math.floor(distance)}m`;
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Initialize WebGL Engine on Load
+        window.onload = () => {
+            init3D();
+        };
+    </script>
+</body>
+</html>
